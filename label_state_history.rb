@@ -45,6 +45,27 @@ class LabelStateHistory
     return @cumulative_time_seconds
   end
 
+  def get_time_between_states(left_state, right_state)
+    puts "get_time_between_states (#{left_state},#{right_state})"
+    @cumulative_time_seconds = 0.0
+    @left_time = nil
+    @right_time = nil
+    @history_array.each do |h|
+      if (h.label_index.to_i == left_state.to_i && @left_time.nil?)
+        puts "left time found"
+        @left_time = Time.parse(h.time).to_f
+      elsif (h.label_index.to_i == right_state.to_i && @right_time.nil?)
+        @right_time = Time.parse(h.time).to_f
+        puts "right time found"
+      end
+    end
+
+    if (!@left_time.nil? && !@right_time.nil?)
+      @cumulative_time_seconds = @right_time - @left_time
+    end
+    return @cumulative_time_seconds
+  end
+
   def to_json
     json = "{ 'label_state_history': ["
     @history_array.each do |h|

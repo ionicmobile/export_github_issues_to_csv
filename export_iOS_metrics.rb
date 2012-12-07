@@ -48,9 +48,11 @@ header = [
   "Title",
   "Description",
   "URL",
+  "State",
   "Size",
   "Time in Dev (minutes)",
-  "Time in QA (minutes)"
+  "Time in QA (minutes)",
+  "Cycle Time (CIP to RFD in minutes)"
 ]
 # We need to add a column for each comment, so this dictates how many comments for each issue you want to support
 csv << header
@@ -122,15 +124,6 @@ all_issues.each do |issue|
   #puts "issue is: --> #{issue} <--"
   #puts "--------------------------------------"
 
-  minutes_in_dev = 0
-  minutes_in_qa = 0
-  if (/label_state_history/.match(issue['body']))
-    #puts "about to create LSH with this body: #{issue['body']}..."
-    lsh = LabelStateHistory.new(issue['body'])
-    minutes_in_dev = lsh.get_time_in_state(50) / 60.0
-    minutes_in_qa = lsh.get_time_in_state(50) / 60.0
-  end
-
   # Only record state for completed stories
   state = ""
   labelnames.each do |n|
@@ -146,6 +139,17 @@ all_issues.each do |issue|
 
   if (log_this_issue)
     puts "Issue in finished state. Logging to metrics..."
+
+    minutes_in_dev = 0
+    minutes_in_qa = 0
+    if (/label_state_history/.match(issue['body']))
+      #puts "about to create LSH with this body: #{issue['body']}..."
+      lsh = LabelStateHistory.new(issue['body'])
+      minutes_in_dev = lsh.get_time_in_state(50) / 60.0
+      minutes_in_qa = lsh.get_time_in_state(70) / 60.0
+      minutes_cycle_time = lsh.get_time_between_states(50, 80) / 60.0
+    end
+
     milestone = issue['milestone'] || "None"
     if (milestone != "None")
       milestone = milestone['title']
@@ -160,9 +164,11 @@ all_issues.each do |issue|
       issue['title'],
       issue['body'],
       issue['html_url'],
+      state,
       size,
       minutes_in_dev,
-      minutes_in_qa
+      minutes_in_qa,
+      minutes_cycle_time
     ]
     csv << row
   else

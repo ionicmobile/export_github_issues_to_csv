@@ -3,6 +3,7 @@ require 'csv'
 require 'date'
 require 'rubygems'
 require 'highline/import'
+require './label_state_history.rb'
 
 TIMEZONE_OFFSET=ENV['GITHUB_TIMEZONE_OFFSET']
 CSV_FILENAME=ENV['GITHUB_DEFAULT_CSV_FILENAME']
@@ -46,43 +47,27 @@ header = [
   "Repo",
   "Title",
   "Description",
-  "Date created",
-  "Date modified",
-  "Issue type",
-  "Milestone",
+  "URL",
   "State",
-  "Open/Closed",
-  "Reporter",
-  "URL"
+  "Size",
+  "Time in Dev (minutes)",
+  "Time in QA (minutes)",
+  "Cycle Time (CIP to RFD in minutes)"
 ]
 # We need to add a column for each comment, so this dictates how many comments for each issue you want to support
-#20.times { header << "Comments" }
 csv << header
 
-puts "Finding this organization's repositories..."
-org_repos = client.organization_repositories(GITHUB_ORGANIZATION)
-puts "\nFound " + org_repos.count.to_s + " repositories:"
-org_repo_names = []
-org_repos.each do |r|
-  org_repo_names.push r['full_name']
-  puts r['full_name']
-end
+org_repo_names = ["ionicmobile/ionic_api_server",
+                  "ionicmobile/townhall_server"]
+puts "Looking for these repositories: #{org_repo_names}"
+
 
 all_issues = []
 
 org_repo_names.each do |repo_name|
   puts "\nGathering issues in repo " + repo_name + "..."
-  temp_issues = []
+
   issues = []
-  page = 0
-  begin
-    page = page +1
-    temp_issues = client.list_issues(repo_name, :state => "closed", :page => page)
-    issues = issues + temp_issues
-  rescue TypeError
-    break
-  end while not temp_issues.empty?
-  temp_issues = []
   page = 0
   begin
     page = page +1
@@ -94,28 +79,29 @@ org_repo_names.each do |repo_name|
   end while not temp_issues.empty?
 
   puts "Found " + issues.count.to_s + " issues."
-
   all_issues = all_issues + issues
 end
 
 puts "\n\n\n"
 puts "-----------------------------"
-puts "Found a total of #{all_issues.size} issues across #{org_repos.size} repositories."
+puts "Found a total of #{all_issues.size} issues across #{org_repo_names.size} repositories."
 puts "-----------------------------"
 
 puts "Processing #{all_issues.size} issues..."
 all_issues.each do |issue|
 
+  log_this_issue = false
+
   puts "Processing issue #{issue['number']} at #{issue['html_url']}..."
 
   # Work out the type based on our existing labels
   case
-    when issue['labels'].to_s =~ /Bug/i
-      type = "Bug"
-    when issue['labels'].to_s =~ /Feature/i
-      type = "New feature"
-    when issue['labels'].to_s =~ /Task/i
-      type = "Task"
+    when issue['labels'].to_s =~ /Small/i
+      size = "Small"
+    when issue['labels'].to_s =~ /Medium/i
+      size = "Medium"
+    when issue['labels'].to_s =~ /Large/i
+      size = "Large"
   end
 
   labelnames = []
@@ -125,54 +111,59 @@ all_issues.each do |issue|
     labelnames.push(labelname)
   end
 
-  # Work out the state based on our existing labels
+  #puts "--------------------------------------"
+  #puts "issue is: --> #{issue} <--"
+  #puts "--------------------------------------"
+
+  # Only record state for completed stories
   state = ""
   labelnames.each do |n|
     case
-      when n =~ /0 - /
-        state = "0 - Backlog"
-      when n =~ /1 - /
-        state = "1 - Design Backlog"
-      when n =~ /2 - /
-        state = "2 - Design in Process"
-      when n =~ /3 - /
-        state = "3 - Ready for Coding"
-      when n =~ /4 - /
-        state = "4 - Coding in Process"
-      when n =~ /5 - /
-        state = "5 - Pull Request"
-      when n =~ /6 - /
-        state = "6 - Ready for QA"
-      when n =~ /7 - /
-        state = "7 - QA in Process"
-      when n =~ /8 - /
-        state = "8 - QA Approved"
-      when n =~ /9 - /
-        state = "9 - Ready for Demo"
+      when n =~ /70 - /
+        log_this_issue = true
+        state = "70 - QA Approved"
+      when n =~ /80 - /
+        log_this_issue = true
+        state = "80 - Ready for Demo"
     end
   end
 
-  milestone = issue['milestone'] || "None"
-  if (milestone != "None")
-    milestone = milestone['title']
-  end
+  if (log_this_issue)
+    puts "Issue in finished state. Logging to metrics..."
 
-  issue['html_url'] =~ /\/github.com\/(.+)\/issues\//
-  repo_name = $1
+    minutes_in_dev = 0
+    minutes_in_qa = 0
+    if (/label_state_history/.match(issue['body']))
+      #puts "about to create LSH with this body: #{issue['body']}..."
+      lsh = LabelStateHistory.new(issue['body'])
+      minutes_in_dev = lsh.get_time_in_state(30) / 60.0
+      minutes_in_qa = lsh.get_time_in_state(60) / 60.0
+      minutes_cycle_time = lsh.get_time_between_states(30, 70) / 60.0
+    end
 
-  # Needs to match the header order above, date format are based on Jira default
-  row = [
-    repo_name,
-    issue['title'],
-    issue['body'],
-    DateTime.parse(issue['created_at']).new_offset(TIMEZONE_OFFSET).strftime("%d/%b/%y %l:%M %p"),
-    DateTime.parse(issue['updated_at']).new_offset(TIMEZONE_OFFSET).strftime("%d/%b/%y %l:%M %p"),
-    type,
-    milestone,
-    state,
-    issue['state'],
-    issue['user']['login'],
-    issue['html_url']
-  ]
-  csv << row
+    milestone = issue['milestone'] || "None"
+    if (milestone != "None")
+      milestone = milestone['title']
+    end
+
+    issue['html_url'] =~ /\/github.com\/(.+)\/issues\//
+    repo_name = $1
+
+    # Needs to match the header order above, date format are based on Jira default
+    row = [
+      repo_name,
+      issue['title'],
+      issue['body'],
+      issue['html_url'],
+      state,
+      size,
+      minutes_in_dev,
+      minutes_in_qa,
+      minutes_cycle_time
+    ]
+    csv << row
+  else
+    puts "Issue was not in a finished state.  Not logging to metrics."
   end
+  puts ""
+end
