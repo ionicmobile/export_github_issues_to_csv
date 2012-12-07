@@ -49,8 +49,8 @@ header = [
   "Description",
   "URL",
   "Size",
-  "Time in Dev",
-  "Time in QA"
+  "Time in Dev (minutes)",
+  "Time in QA (minutes)"
 ]
 # We need to add a column for each comment, so this dictates how many comments for each issue you want to support
 csv << header
@@ -118,33 +118,34 @@ all_issues.each do |issue|
     labelnames.push(labelname)
   end
 
-  puts "--------------------------------------"
-  puts "issue is: --> #{issue} <--"
-  puts "--------------------------------------"
+  #puts "--------------------------------------"
+  #puts "issue is: --> #{issue} <--"
+  #puts "--------------------------------------"
 
-  lsh = LabelStateHistory.new(issue['body'])
-
-  times.push lsh.get_time_in_state(10)
-  time_in_dev = lsh.get_time_in_state(50)
-  time_in_qa = lsh.get_time_in_state(50)
+  minutes_in_dev = 0
+  minutes_in_qa = 0
+  if (/label_state_history/.match(issue['body']))
+    #puts "about to create LSH with this body: #{issue['body']}..."
+    lsh = LabelStateHistory.new(issue['body'])
+    minutes_in_dev = lsh.get_time_in_state(50) / 60.0
+    minutes_in_qa = lsh.get_time_in_state(50) / 60.0
+  end
 
   # Only record state for completed stories
   state = ""
-  puts "labelnames are: #{labelnames}"
   labelnames.each do |n|
     case
-      when n =~ /90 - /
-        # these are the issues we care about
-        log_this_issue = true
-        state = "90 - Ready for Demo"
       when n =~ /80 - /
-        # these are the issues we care about
         log_this_issue = true
         state = "80 - QA Approved"
+      when n =~ /90 - /
+        log_this_issue = true
+        state = "90 - Ready for Demo"
     end
   end
 
   if (log_this_issue)
+    puts "Issue in finished state. Logging to metrics..."
     milestone = issue['milestone'] || "None"
     if (milestone != "None")
       milestone = milestone['title']
@@ -160,9 +161,12 @@ all_issues.each do |issue|
       issue['body'],
       issue['html_url'],
       size,
-      time_in_dev,
-      time_in_qa
+      minutes_in_dev,
+      minutes_in_qa
     ]
     csv << row
+  else
+    puts "Issue was not in a finished state.  Not logging to metrics."
   end
+  puts ""
 end
