@@ -46,11 +46,13 @@ header = [
   "Repo",
   "Title",
   "Description",
-  "Date created",
-  "Date modified",
-  "Issue type",
+  "Date Created",
+  "Date Modified",
+  "Issue Type",
   "Milestone",
   "State",
+  "Feedback",
+  "External",
   "Open/Closed",
   "Reporter",
   "URL"
@@ -107,6 +109,8 @@ puts "Processing #{all_issues.size} issues..."
 all_issues.each do |issue|
 
   puts "Processing issue #{issue['number']} at #{issue['html_url']}..."
+  feedback = 0
+  external = 0
 
   # Work out the type based on our existing labels
   case
@@ -116,6 +120,10 @@ all_issues.each do |issue|
       type = "New feature"
     when issue['labels'].to_s =~ /Task/i
       type = "Task"
+    when issue['labels'].to_s =~ /Feedback/i
+      feedback = 1
+    when issue['labels'].to_s =~ /External/i
+      external = 1
   end
 
   labelnames = []
@@ -170,6 +178,8 @@ all_issues.each do |issue|
     type,
     milestone,
     state,
+    feedback,
+    external,
     issue['state'],
     issue['user']['login'],
     issue['html_url']
