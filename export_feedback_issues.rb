@@ -107,24 +107,18 @@ puts "-----------------------------"
 
 puts "Processing #{all_issues.size} issues..."
 all_issues.each do |issue|
-  printRow = false
-
   puts "Processing issue #{issue['number']} at #{issue['html_url']}..."
   feedback = 0
   external = 0
 
   # Work out the type based on our existing labels
-  case
-    when issue['labels'].to_s =~ /bug/i
-      type = "Bug"
-    when issue['labels'].to_s =~ /enhancement/i
-      type = "New feature"
-    when issue['labels'].to_s =~ /Feedback/i
-      feedback = 1
-      printRow = true
-    when issue['labels'].to_s =~ /External/i
-      external = 1
-  end
+  label_string = issue['labels'].to_s
+  type = "Bug"         if label_string =~ /Bug/i
+  type = "Enhancement" if label_string =~ /Enhancement/i
+  feedback = 1         if label_string =~ /Feedback/i
+  external = 1         if label_string =~ /External/i
+
+  printRow = (feedback == 1)
 
   labelnames = []
   issue['labels'].each do |label|

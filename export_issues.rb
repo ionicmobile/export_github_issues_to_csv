@@ -112,17 +112,12 @@ all_issues.each do |issue|
   feedback = 0
   external = 0
 
-  # Work out the type based on our existing labels
-  case
-    when issue['labels'].to_s =~ /bug/i
-      type = "Bug"
-    when issue['labels'].to_s =~ /enhancement/i
-      type = "New feature"
-    when issue['labels'].to_s =~ /Feedback/i
-      feedback = 1
-    when issue['labels'].to_s =~ /External/i
-      external = 1
-  end
+# Work out the type based on our existing labels
+  label_string = issue['labels'].to_s
+  type = "Bug"         if label_string =~ /Bug/i
+  type = "Enhancement" if label_string =~ /Enhancement/i
+  feedback = 1         if label_string =~ /Feedback/i
+  external = 1         if label_string =~ /External/i
 
   labelnames = []
   issue['labels'].each do |label|
