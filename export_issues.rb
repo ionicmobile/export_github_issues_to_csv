@@ -114,12 +114,10 @@ all_issues.each do |issue|
 
   # Work out the type based on our existing labels
   case
-    when issue['labels'].to_s =~ /Bug/i
+    when issue['labels'].to_s =~ /bug/i
       type = "Bug"
-    when issue['labels'].to_s =~ /Feature/i
+    when issue['labels'].to_s =~ /enhancement/i
       type = "New feature"
-    when issue['labels'].to_s =~ /Task/i
-      type = "Task"
     when issue['labels'].to_s =~ /Feedback/i
       feedback = 1
     when issue['labels'].to_s =~ /External/i
