@@ -43,19 +43,19 @@ csv = CSV.new(File.open(File.dirname(__FILE__) + csv_file, 'w'))
 puts "Initialising CSV file " + csv_file + "..."
 #CSV Headers
 header = [
-  "Repo",
-  "Title",
-  "Description",
-  "Date Created",
-  "Date Modified",
-  "Issue Type",
-  "Milestone",
-  "State",
-  "Feedback",
-  "External",
-  "Open/Closed",
-  "Reporter",
-  "URL"
+    "Repo",
+    "Title",
+    "Description",
+    "Date Created",
+    "Date Modified",
+    "Issue Type",
+    "Milestone",
+    "State",
+    "Feedback",
+    "External",
+    "Open/Closed",
+    "Reporter",
+    "URL"
 ]
 # We need to add a column for each comment, so this dictates how many comments for each issue you want to support
 #20.times { header << "Comments" }
@@ -107,12 +107,11 @@ puts "-----------------------------"
 
 puts "Processing #{all_issues.size} issues..."
 all_issues.each do |issue|
-
   puts "Processing issue #{issue['number']} at #{issue['html_url']}..."
   feedback = 0
   external = 0
 
-# Work out the type based on our existing labels
+  # Work out the type based on our existing labels
   label_string = issue['labels'].to_s
   type = "Bug"         if label_string =~ /Bug/i
   type = "Enhancement" if label_string =~ /Enhancement/i
@@ -130,26 +129,26 @@ all_issues.each do |issue|
   state = ""
   labelnames.each do |n|
     case
-      when n =~ /0 - /
-        state = "0 - Backlog"
-      when n =~ /1 - /
-        state = "1 - Design Backlog"
-      when n =~ /2 - /
-        state = "2 - Design in Process"
-      when n =~ /3 - /
-        state = "3 - Ready for Coding"
-      when n =~ /4 - /
-        state = "4 - Coding in Process"
-      when n =~ /5 - /
-        state = "5 - Pull Request"
-      when n =~ /6 - /
-        state = "6 - Ready for QA"
-      when n =~ /7 - /
-        state = "7 - QA in Process"
-      when n =~ /8 - /
-        state = "8 - QA Approved"
-      when n =~ /9 - /
-        state = "9 - Ready for Demo"
+      when n =~ /10 - Backlog/i
+        state = "Backlog"
+      when n =~ /Design Backlog/i
+        state = "Design Backlog"
+      when n =~ /Design in Process/i
+        state = "Design in Process"
+      when n =~ /Code Review/i
+        state = "Code Review"
+      when n =~ /Ready for Dev QA/i
+        state = "Ready for Dev QA"
+      when n =~ /Coding in Process/i
+        state = "Coding in Process"
+      when n =~ /Ready for QA/i
+        state = "Ready for QA"
+      when n =~ /QA in Process/i
+        state = "QA in Process"
+      when n =~ /QA Approved/i
+        state = "QA Approved"
+      when n =~ /Ready for Demo/i
+        state = "Ready for Demo"
     end
   end
 
@@ -163,19 +162,19 @@ all_issues.each do |issue|
 
   # Needs to match the header order above, date format are based on Jira default
   row = [
-    repo_name,
-    issue['title'],
-    issue['body'],
-    DateTime.parse(issue['created_at']).new_offset(TIMEZONE_OFFSET).strftime("%d/%b/%y %l:%M %p"),
-    DateTime.parse(issue['updated_at']).new_offset(TIMEZONE_OFFSET).strftime("%d/%b/%y %l:%M %p"),
-    type,
-    milestone,
-    state,
-    feedback,
-    external,
-    issue['state'],
-    issue['user']['login'],
-    issue['html_url']
+      repo_name,
+      issue['title'],
+      issue['body'],
+      DateTime.parse(issue['created_at']).new_offset(TIMEZONE_OFFSET).strftime("%d/%b/%y %l:%M %p"),
+      DateTime.parse(issue['updated_at']).new_offset(TIMEZONE_OFFSET).strftime("%d/%b/%y %l:%M %p"),
+      type,
+      milestone,
+      state,
+      feedback,
+      external,
+      issue['state'],
+      issue['user']['login'],
+      issue['html_url']
   ]
-  csv << row
-  end
+  csv << row if printRow
+end
