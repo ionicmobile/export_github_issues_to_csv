@@ -141,6 +141,8 @@ all_issues.each do |issue|
         state = "Code Review"
       when n =~ /Ready for Dev QA/i
         state = "Ready for Dev QA"
+      when n =~ /Ready for Coding/i
+        state = "Ready for Coding"
       when n =~ /Coding in Process/i
         state = "Coding in Process"
       when n =~ /Ready for QA/i
