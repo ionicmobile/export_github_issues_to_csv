@@ -43,26 +43,27 @@ csv = CSV.new(File.open(File.dirname(__FILE__) + csv_file, 'w'))
 puts "Initialising CSV file " + csv_file + "..."
 #CSV Headers
 header = [
-    "Repo",
-    "Title",
-    "Description",
-    "Date Created",
-    "Date Modified",
-    "Issue Type",
-    "Milestone",
-    "State",
-    "Feedback",
-    "External",
-    "Open/Closed",
-    "Reporter",
-    "URL"
+  "Repo",
+  "Title",
+  "Description",
+  "Date Created",
+  "Date Modified",
+  "Date Closed",
+  "Issue Type",
+  "Milestone",
+  "State",
+  "Feedback",
+  "External",
+  "Open/Closed",
+  "Reporter",
+  "URL"
 ]
 # We need to add a column for each comment, so this dictates how many comments for each issue you want to support
 #20.times { header << "Comments" }
 csv << header
 
 puts "Finding this organization's repositories..."
-org_repos = client.organization_repositories(GITHUB_ORGANIZATION)
+org_repos = client.organization_repositories(GITHUB_ORGANIZATION, :per_page => 100)
 puts "\nFound " + org_repos.count.to_s + " repositories:"
 org_repo_names = []
 org_repos.each do |r|
@@ -107,6 +108,14 @@ puts "-----------------------------"
 
 puts "Processing #{all_issues.size} issues..."
 all_issues.each do |issue|
+
+  #puts ""
+  #puts "full issue:"
+  #puts "#{issue}"
+  #puts "end full issue."
+  #puts ""
+
+
   puts "Processing issue #{issue['number']} at #{issue['html_url']}..."
   feedback = 0
   external = 0
@@ -162,21 +171,24 @@ all_issues.each do |issue|
   issue['html_url'] =~ /\/github.com\/(.+)\/issues\//
   repo_name = $1
 
+  closed_at_time = issue['closed_at'] ? DateTime.parse(issue['closed_at']).new_offset(TIMEZONE_OFFSET).strftime("%d/%b/%y %l:%M %p") : ""
+
   # Needs to match the header order above, date format are based on Jira default
   row = [
-      repo_name,
-      issue['title'],
-      issue['body'],
-      DateTime.parse(issue['created_at']).new_offset(TIMEZONE_OFFSET).strftime("%d/%b/%y %l:%M %p"),
-      DateTime.parse(issue['updated_at']).new_offset(TIMEZONE_OFFSET).strftime("%d/%b/%y %l:%M %p"),
-      type,
-      milestone,
-      state,
-      feedback,
-      external,
-      issue['state'],
-      issue['user']['login'],
-      issue['html_url']
+    repo_name,
+    issue['title'],
+    issue['body'],
+    DateTime.parse(issue['created_at']).new_offset(TIMEZONE_OFFSET).strftime("%d/%b/%y %l:%M %p"),
+    DateTime.parse(issue['updated_at']).new_offset(TIMEZONE_OFFSET).strftime("%d/%b/%y %l:%M %p"),
+    closed_at_time,
+    type,
+    milestone,
+    state,
+    feedback,
+    external,
+    issue['state'],
+    issue['user']['login'],
+    issue['html_url']
   ]
   csv << row
-end
+  end

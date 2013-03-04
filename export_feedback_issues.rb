@@ -48,6 +48,7 @@ header = [
   "Description",
   "Date Created",
   "Date Modified",
+  "Date Closed",
   "Issue Type",
   "Milestone",
   "State",
@@ -62,7 +63,7 @@ header = [
 csv << header
 
 puts "Finding this organization's repositories..."
-org_repos = client.organization_repositories(GITHUB_ORGANIZATION)
+org_repos = client.organization_repositories(GITHUB_ORGANIZATION, :per_page => 100)
 puts "\nFound " + org_repos.count.to_s + " repositories:"
 org_repo_names = []
 org_repos.each do |r|
@@ -107,6 +108,14 @@ puts "-----------------------------"
 
 puts "Processing #{all_issues.size} issues..."
 all_issues.each do |issue|
+
+  #puts ""
+  #puts "full issue:"
+  #puts "#{issue}"
+  #puts "end full issue."
+  #puts ""
+
+
   puts "Processing issue #{issue['number']} at #{issue['html_url']}..."
   feedback = 0
   external = 0
@@ -164,6 +173,8 @@ all_issues.each do |issue|
   issue['html_url'] =~ /\/github.com\/(.+)\/issues\//
   repo_name = $1
 
+  closed_at_time = issue['closed_at'] ? DateTime.parse(issue['closed_at']).new_offset(TIMEZONE_OFFSET).strftime("%d/%b/%y %l:%M %p") : ""
+
   # Needs to match the header order above, date format are based on Jira default
   row = [
     repo_name,
@@ -171,6 +182,7 @@ all_issues.each do |issue|
     issue['body'],
     DateTime.parse(issue['created_at']).new_offset(TIMEZONE_OFFSET).strftime("%d/%b/%y %l:%M %p"),
     DateTime.parse(issue['updated_at']).new_offset(TIMEZONE_OFFSET).strftime("%d/%b/%y %l:%M %p"),
+    closed_at_time,
     type,
     milestone,
     state,
