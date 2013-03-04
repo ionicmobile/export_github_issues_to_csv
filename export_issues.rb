@@ -178,5 +178,5 @@ all_issues.each do |issue|
       issue['user']['login'],
       issue['html_url']
   ]
-  csv << row if printRow
+  csv << row
 end
