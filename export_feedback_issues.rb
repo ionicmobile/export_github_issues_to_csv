@@ -53,6 +53,7 @@ header = [
   "Milestone",
   "State",
   "Feedback",
+  "Priority",
   "External",
   "Open/Closed",
   "Reporter",
@@ -109,13 +110,6 @@ puts "-----------------------------"
 puts "Processing #{all_issues.size} issues..."
 all_issues.each do |issue|
 
-  #puts ""
-  #puts "full issue:"
-  #puts "#{issue}"
-  #puts "end full issue."
-  #puts ""
-
-
   puts "Processing issue #{issue['number']} at #{issue['html_url']}..."
   feedback = 0
   external = 0
@@ -165,6 +159,23 @@ all_issues.each do |issue|
     end
   end
 
+  # Work out priority
+  priority = ""
+  labelnames.each do |n|
+    case
+      when n =~ /Priority:1/i
+        priority = 1
+      when n =~ /Priority:2/i
+        priority = 2
+      when n =~ /Priority:3/i
+        priority = 3
+      when n =~ /Priority:4/i
+        priority = 4
+      when n =~ /Priority:5/i
+        priority = 5
+    end
+  end
+
   milestone = issue['milestone'] || "None"
   if (milestone != "None")
     milestone = milestone['title']
@@ -187,6 +198,7 @@ all_issues.each do |issue|
     milestone,
     state,
     feedback,
+    priority,
     external,
     issue['state'],
     issue['user']['login'],
