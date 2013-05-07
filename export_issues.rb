@@ -209,6 +209,8 @@ all_issues.each do |issue|
     feedback,
     priority,
     external,
+    lemon,
+    missedAC,
     issue['state'],
     issue['user']['login'],
     issue['html_url']
