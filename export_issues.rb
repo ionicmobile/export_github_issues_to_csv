@@ -113,12 +113,14 @@ puts "Processing #{all_issues.size} issues..."
 all_issues.each do |issue|
 
   puts "Processing issue #{issue['number']} at #{issue['html_url']}..."
-  puts ""
-  puts "full issue:"
-  puts "#{issue}"
-  puts ""
+  #puts ""
+  #puts "full issue:"
+  #puts "#{issue}"
+  #puts ""
   feedback = 0
   external = 0
+  lemon = 0
+  missedAC = 0
 
   # Work out the type based on our existing labels
   label_string = issue['labels'].to_s
@@ -126,6 +128,8 @@ all_issues.each do |issue|
   type = "Enhancement" if label_string =~ /Enhancement/i
   feedback = 1         if label_string =~ /Feedback/i
   external = 1         if label_string =~ /External/i
+  lemon = 1            if label_string =~ /Lemon/i
+  missedAC = 1         if label_string =~ /MissedAC/i
 
   labelnames = []
   issue['labels'].each do |label|
@@ -138,8 +142,8 @@ all_issues.each do |issue|
   state = ""
   labelnames.each do |n|
     case
-      when n =~ /10 - Backlog/i
-        state = "Backlog"
+    when n =~ /10 - Backlog/i
+      state = "Backlog"
       when n =~ /Design Backlog/i
         state = "Design Backlog"
       when n =~ /Design in Process/i
@@ -165,12 +169,10 @@ all_issues.each do |issue|
 
   # Work out priority
   priority = ""
-  lemon = 0
-  missedAC = 0
   labelnames.each do |n|
     case
     when n =~ /Priority:1/i
-        priority = 1
+      priority = 1
       when n =~ /Priority:2/i
         priority = 2
       when n =~ /Priority:3/i
@@ -180,9 +182,6 @@ all_issues.each do |issue|
       when n =~ /Priority:5/i
         priority = 5
     end
-
-    lemon = 1 if (n =~ /Lemon/i)
-    missedAC = 1 if (n =~ /MissedAC/i)
   end
 
   milestone = issue['milestone'] || "None"
@@ -216,4 +215,5 @@ all_issues.each do |issue|
     issue['html_url']
   ]
   csv << row
-  end
+
+end
