@@ -5,11 +5,19 @@ require 'rubygems'
 require 'highline/import'
 
 class GitHubIssueExporter
-  def export_issues(show_descriptions, only_show_feedback)
+  @@show_descriptions = false
+  @@only_show_feedback = false
+
+  def initialize(show_descriptions = false, only_show_feedback = false)
+    @@show_descriptions = show_descriptions
+    @@only_show_feedback = only_show_feedback
+  end
+
+  def export_issues
     org = get_github_organization()
     octokit_client = github_connection(org)
     all_issues = get_all_issues(octokit_client, org)
-    loop_all_issues_and_write_to_csv(get_csv_filename(), all_issues, show_descriptions, only_show_feedback)
+    loop_all_issues_and_write_to_csv(get_csv_filename(), all_issues)
   end
 
   def github_connection(github_org)
@@ -40,9 +48,8 @@ class GitHubIssueExporter
     org_repo_names = get_all_repo_names(octokit_client, github_organization)
     org_repo_names.each do |repo_name|
 
-      milestones = octokit_client.list_milestones
-      issues(repo_name, :state => "closed", :page => page)
-
+      milestones = octokit_client.list_milestones(repo_name, :page => page)
+      puts milestones
     end
   end
 
@@ -52,7 +59,7 @@ class GitHubIssueExporter
 
   def get_all_repo_names(octokit_client, github_organization)
     puts "Finding this organization's repositories..."
-    org_repos = octokit_client.organization_repositories(github_organization, :per_page => 100)
+    org_repos = octokit_client.organization_repositories(github_organization, :per_page => 5)
     puts "\nFound " + org_repos.count.to_s + " repositories:"
     org_repo_names = []
     org_repos.each do |r|
@@ -95,12 +102,12 @@ class GitHubIssueExporter
     return all_issues
   end
 
-  def loop_all_issues_and_write_to_csv(filename, all_issues, show_descriptions, only_show_feedback)
+  def loop_all_issues_and_write_to_csv(filename, all_issues)
     csv = CSV.new(File.open(File.dirname(__FILE__) + filename, 'w'))
 
     puts "Initialising CSV file " + filename + "..."
     header = ["Repo", "Title"]
-    header.push "Description" if show_descriptions
+    header.push "Description" if @@show_descriptions
     header.push "Date Created"
     header.push "Date Modified"
     header.push "Date Closed"
@@ -131,7 +138,7 @@ class GitHubIssueExporter
       feedback = is_feedback(issue)
 
       row = [repo_name, issue['title']]
-      row.push issue['body'] if show_descriptions
+      row.push issue['body'] if @@show_descriptions
       row.push get_created_at_time(issue)
       row.push get_updated_at_time(issue)
       row.push get_closed_at_time(issue)
@@ -147,7 +154,7 @@ class GitHubIssueExporter
       row.push issue['user']['login']
       row.push issue['html_url']
 
-      csv << row unless (only_show_feedback && feedback == 0)
+      csv << row unless (@@only_show_feedback && feedback == 0)
     end
   end
 
