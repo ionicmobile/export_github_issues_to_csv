@@ -5,11 +5,11 @@ require 'rubygems'
 require 'highline/import'
 
 class GitHubIssueExporter
-  def export_issues(show_descriptions)
+  def export_issues(show_descriptions, only_show_feedback)
     org = get_github_organization()
     octokit_client = github_connection(org)
     all_issues = get_all_issues(octokit_client, org)
-    loop_all_issues_and_write_to_csv(get_csv_filename(), all_issues, show_descriptions)
+    loop_all_issues_and_write_to_csv(get_csv_filename(), all_issues, show_descriptions, only_show_feedback)
   end
 
   def github_connection(github_org)
@@ -37,14 +37,20 @@ class GitHubIssueExporter
   end
 
   def get_all_milestones(octokit_client, github_organization)
+    org_repo_names = get_all_repo_names(octokit_client, github_organization)
+    org_repo_names.each do |repo_name|
 
+      milestones = octokit_client.list_milestones
+      issues(repo_name, :state => "closed", :page => page)
+
+    end
   end
 
   def get_all_milestone_issues(milestone)
 
   end
 
-  def get_all_issues(octokit_client, github_organization)
+  def get_all_repo_names(octokit_client, github_organization)
     puts "Finding this organization's repositories..."
     org_repos = octokit_client.organization_repositories(github_organization, :per_page => 100)
     puts "\nFound " + org_repos.count.to_s + " repositories:"
@@ -53,9 +59,12 @@ class GitHubIssueExporter
       org_repo_names.push r['full_name']
       puts r['full_name']
     end
+    return org_repo_names
+  end
 
+  def get_all_issues(octokit_client, github_organization)
     all_issues = []
-
+    org_repo_names = get_all_repo_names(octokit_client, github_organization)
     org_repo_names.each do |repo_name|
       puts "\nGathering issues in repo " + repo_name + "..."
       temp_issues = []
@@ -86,7 +95,7 @@ class GitHubIssueExporter
     return all_issues
   end
 
-  def loop_all_issues_and_write_to_csv(filename, all_issues, show_descriptions)
+  def loop_all_issues_and_write_to_csv(filename, all_issues, show_descriptions, only_show_feedback)
     csv = CSV.new(File.open(File.dirname(__FILE__) + filename, 'w'))
 
     puts "Initialising CSV file " + filename + "..."
@@ -119,6 +128,7 @@ class GitHubIssueExporter
       puts "Processing issue #{issue['number']} at #{issue['html_url']}..."
       issue['html_url'] =~ /\/github.com\/(.+)\/issues\//
       repo_name = $1
+      feedback = is_feedback(issue)
 
       row = [repo_name, issue['title']]
       row.push issue['body'] if show_descriptions
@@ -128,7 +138,7 @@ class GitHubIssueExporter
       row.push get_type(issue)
       row.push get_milestone(issue)
       row.push get_queue_state(issue)
-      row.push is_feedback(issue)
+      row.push feedback
       row.push get_priority(issue)
       row.push is_external(issue)
       row.push is_lemon(issue)
@@ -137,7 +147,7 @@ class GitHubIssueExporter
       row.push issue['user']['login']
       row.push issue['html_url']
 
-      csv << row
+      csv << row unless (only_show_feedback && feedback == 0)
     end
   end
 
